@@ -3,15 +3,29 @@ import csv
 from datetime import datetime
 
 # メモファイルのパス
-MEMO_FILE_NAME = "huge_memo.csv"
+MEMO_DATA_DIR = "memo_data"
+MEMO_FILE_NAME = os.path.join(MEMO_DATA_DIR, "huge_memo.csv")
 
 
 def initialize_memo_file():
-    """ファイルが存在しない場合、ヘッダーを追加して作成する"""
-    if not os.path.exists(MEMO_FILE_NAME):
-        with open(MEMO_FILE_NAME, mode="w", encoding="utf-8", newline='') as file:
-            writer = csv.writer(file)
+    """ファイルが存在しない場合、ヘッダーを追加して作成する。存在する場合はヘッダーを確認し、欠けていれば追加する。"""
+    
+    # ディレクトリが存在しない場合は作成する
+    if not os.path.exists(MEMO_DATA_DIR):
+        os.makedirs(MEMO_DATA_DIR)
+    
+    file_exists = os.path.exists(MEMO_FILE_NAME)
+    with open(MEMO_FILE_NAME, mode="a", encoding="utf-8", newline='') as file:
+        writer = csv.writer(file)
+        if not file_exists or os.path.getsize(MEMO_FILE_NAME) == 0:
             writer.writerow(["Datetime", "Content"])
+        else:
+            # ヘッダーの存在確認
+            file.seek(0)
+            reader = csv.reader(file)
+            headers = next(reader, None)
+            if headers != ["Datetime", "Content"]:
+                writer.writerow(["Datetime", "Content"])
 
 
 def clear_screen():
@@ -26,10 +40,13 @@ def read_today_entries():
     with open(MEMO_FILE_NAME, mode="r", encoding="utf-8", newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            entry_datetime = datetime.strptime(row['Datetime'], "%Y-%m-%d %H:%M")
-            if entry_datetime.date() == today:
-                time_str = entry_datetime.strftime("%H:%M")
-                entries.append((time_str, row['Content']))
+            try:
+                entry_datetime = datetime.strptime(row['Datetime'], "%Y-%m-%dT%H:%M:%S.%f")
+                if entry_datetime.date() == today:
+                    time_str = entry_datetime.strftime("%H:%M")
+                    entries.append((time_str, row['Content']))
+            except (ValueError, KeyError):
+                continue  # フォーマットが正しくない行やキーが存在しない場合は無視
     return entries
 
 
@@ -46,7 +63,7 @@ def display_log(entries):
 def append_entry(content):
     """新しいエントリーをCSVファイルに追加する"""
     now = datetime.now()
-    datetime_str = now.strftime("%Y-%m-%d %H:%M")
+    datetime_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
     with open(MEMO_FILE_NAME, mode="a", encoding="utf-8", newline='') as file:
         writer = csv.writer(file)
         writer.writerow([datetime_str, content])
@@ -62,12 +79,10 @@ def main():
         # ユーザー入力を受け付け
         user_input = input()
         if user_input.lower() == 'exit':
-            print("\nメモの記録を終了します。")
             break
         if user_input.strip() == "":
             continue  # 空の入力は無視
         append_entry(user_input)
-        # エントリー追加後、自動的に再ループして再表示される
 
 
 if __name__ == "__main__":
