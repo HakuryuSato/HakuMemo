@@ -15,17 +15,21 @@ def initialize_memo_file():
         os.makedirs(MEMO_DATA_DIR)
     
     file_exists = os.path.exists(MEMO_FILE_NAME)
-    with open(MEMO_FILE_NAME, mode="a", encoding="utf-8", newline='') as file:
-        writer = csv.writer(file)
-        if not file_exists or os.path.getsize(MEMO_FILE_NAME) == 0:
+    if not file_exists or os.path.getsize(MEMO_FILE_NAME) == 0:
+        # ファイルがないか、サイズが0の場合は書き込みモードでヘッダーを追加
+        with open(MEMO_FILE_NAME, mode="a", encoding="utf-8", newline='') as file:
+            writer = csv.writer(file)
             writer.writerow(["Datetime", "Content"])
-        else:
-            # ヘッダーの存在確認
-            file.seek(0)
+    else:
+        # ファイルが存在する場合は読み込みモードでヘッダーを確認
+        with open(MEMO_FILE_NAME, mode="r", encoding="utf-8", newline='') as file:
             reader = csv.reader(file)
             headers = next(reader, None)
             if headers != ["Datetime", "Content"]:
-                writer.writerow(["Datetime", "Content"])
+                # ヘッダーがない場合は書き込みモードで追加
+                with open(MEMO_FILE_NAME, mode="a", encoding="utf-8", newline='') as write_file:
+                    writer = csv.writer(write_file)
+                    writer.writerow(["Datetime", "Content"])
 
 
 def clear_screen():
