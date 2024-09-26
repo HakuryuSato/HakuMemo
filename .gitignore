@@ -1,2 +1,4 @@
 venv/
 memo_data/*
+huge_memo.csv
+!memo_data/huge_memo.csv
